@@ -27,6 +27,8 @@
 #include "../ijksdl_aout.h"
 
 SDL_Aout *SDL_AoutAndroid_CreateForAudioTrack();
+SDL_Aout *SDL_AoutAndroid_CreateForCustomAudioTrack();
 bool      SDL_AoutAndroid_IsObjectOfAudioTrack(SDL_Aout *aout);
+bool      SDL_AoutAndroid_IsObjectOfCustomAudioTrack(SDL_Aout *aout);
 
 #endif

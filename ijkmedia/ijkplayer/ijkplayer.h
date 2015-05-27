@@ -183,6 +183,7 @@ attribute_deprecated
 void            ijkmp_set_framedrop(IjkMediaPlayer *mp, int framedrop);
 void            ijkmp_set_auto_play_on_prepared(IjkMediaPlayer *mp, int auto_play_on_prepared);
 void            ijkmp_set_max_buffer_size(IjkMediaPlayer *mp, int max_buffer_size);
+void            ijkmp_set_output_channel_layout(IjkMediaPlayer *mp, int output_channel_layout);
 
 int             ijkmp_get_video_codec_info(IjkMediaPlayer *mp, char **codec_info);
 int             ijkmp_get_audio_codec_info(IjkMediaPlayer *mp, char **codec_info);

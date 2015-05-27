@@ -248,6 +248,17 @@ void ijkmp_set_max_buffer_size(IjkMediaPlayer *mp, int max_buffer_size)
     MPTRACE("%s()=void\n", __func__);
 }
 
+void ijkmp_set_output_channel_layout(IjkMediaPlayer *mp, int output_channel_layout)
+{
+    assert(mp);
+
+    MPTRACE("%s(%d)\n", __func__, output_channel_layout);
+    pthread_mutex_lock(&mp->mutex);
+    ffp_set_output_channel_layout(mp->ffplayer, output_channel_layout);
+    pthread_mutex_unlock(&mp->mutex);
+    MPTRACE("%s()=void\n", __func__);
+}
+
 int ijkmp_get_video_codec_info(IjkMediaPlayer *mp, char **codec_info)
 {
     assert(mp);
@@ -598,8 +609,10 @@ long ijkmp_get_current_position(IjkMediaPlayer *mp)
     long retval;
     if (mp->seek_req)
         retval = mp->seek_msec;
-    else
+    else if (mp->ffplayer)
         retval = ijkmp_get_current_position_l(mp);
+    else
+        retval = 0; 
     pthread_mutex_unlock(&mp->mutex);
     return retval;
 }

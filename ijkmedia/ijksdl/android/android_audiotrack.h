@@ -82,6 +82,8 @@ typedef struct SDL_Android_AudioTrack_Spec {
 typedef struct SDL_Android_AudioTrack SDL_Android_AudioTrack;
 
 int SDL_Android_AudioTrack_global_init(JNIEnv *env);
+int SDL_Android_Custom_AudioTrack_global_init(JNIEnv *env);
+void SDL_Android_USE_Custom_AudioTrack(bool used);
 
 SDL_Android_AudioTrack *SDL_Android_AudioTrack_new_from_spec(JNIEnv *env, SDL_Android_AudioTrack_Spec *spec);
 SDL_Android_AudioTrack *SDL_Android_AudioTrack_new_from_sdl_spec(JNIEnv *env, const SDL_AudioSpec *sdl_spec);

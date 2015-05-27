@@ -186,7 +186,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 
     retval = SDL_Android_AudioTrack_global_init(env);
     JNI_CHECK_RET(retval == 0, env, NULL, NULL, -1);
-
+    retval = SDL_Android_Custom_AudioTrack_global_init(env);
+    JNI_CHECK_RET(retval == 0, env, NULL, NULL, -1);
     retval = ASDK_ByteBuffer__loadClass(env);
     JNI_CHECK_RET(retval == 0, env, NULL, NULL, -1);
     retval = SDL_AMediaFormatJava__loadClass(env);

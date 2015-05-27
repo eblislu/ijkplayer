@@ -424,6 +424,19 @@ IjkMediaPlayer_setOpenSLESEnabled(JNIEnv *env, jobject thiz, jboolean enabled)
 }
 
 static void
+IjkMediaPlayer_setCustomAudioTrackEnabled(JNIEnv *env, jobject thiz, jboolean enabled)
+{
+    MPTRACE("%s", __func__);
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: CustomAudioTrackEnabled: null mp", LABEL_RETURN);
+
+    ijkmp_android_set_custom_audio_track_enabled(mp, enabled);
+
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+}
+
+static void
 IjkMediaPlayer_setAutoPlayOnPrepared(JNIEnv *env, jobject thiz, jboolean enabled)
 {
     MPTRACE("%s", __func__);
@@ -431,6 +444,19 @@ IjkMediaPlayer_setAutoPlayOnPrepared(JNIEnv *env, jobject thiz, jboolean enabled
     JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: setAutoPlayOnPrepared: null mp", LABEL_RETURN);
 
     ijkmp_set_auto_play_on_prepared(mp, enabled);
+
+LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+}
+
+static void
+IjkMediaPlayer_setOutputChannelLayout(JNIEnv *env, jobject thiz, jint outputChannelLayout)
+{
+    MPTRACE("%s", __func__);
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: setAutoPlayOnPrepared: null mp", LABEL_RETURN);
+
+    ijkmp_set_output_channel_layout(mp, outputChannelLayout);
 
 LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
@@ -898,7 +924,9 @@ static JNINativeMethod g_methods[] = {
     { "_setFrameDrop", "(I)V", (void *) IjkMediaPlayer_setFrameDrop },
     { "_setMediaCodecEnabled", "(Z)V", (void *) IjkMediaPlayer_setMediaCodecEnabled },
     { "_setOpenSLESEnabled", "(Z)V", (void *) IjkMediaPlayer_setOpenSLESEnabled },
+    { "_setCustomAudioTrackEnabled", "(Z)V", (void *) IjkMediaPlayer_setCustomAudioTrackEnabled },
     { "_setAutoPlayOnPrepared", "(Z)V", (void *) IjkMediaPlayer_setAutoPlayOnPrepared },
+    { "_setOutputChannelLayout", "(I)V", (void *) IjkMediaPlayer_setOutputChannelLayout },
 
     { "_getColorFormatName", "(I)Ljava/lang/String;", (void *) IjkMediaPlayer_getColorFormatName },
     { "_getVideoCodecInfo", "()Ljava/lang/String;", (void *) IjkMediaPlayer_getVideoCodecInfo },

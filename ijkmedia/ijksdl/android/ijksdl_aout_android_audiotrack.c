@@ -41,6 +41,10 @@ static SDL_Class g_audiotrack_class = {
     .name = "AudioTrack",
 };
 
+static SDL_Class g_custom_audiotrack_class = {
+    .name = "CustomAudioTrack",
+};
+
 typedef struct SDL_Aout_Opaque {
     SDL_cond *wakeup_cond;
     SDL_mutex *wakeup_mutex;
@@ -69,7 +73,7 @@ static int aout_thread_n(JNIEnv *env, SDL_Aout *aout)
     SDL_AudioCallback audio_cblk = opaque->spec.callback;
     void *userdata = opaque->spec.userdata;
     uint8_t *buffer = opaque->buffer;
-    int copy_size = 256;
+    int copy_size = opaque->buffer_size;
 
     assert(atrack);
     assert(buffer);
@@ -262,8 +266,9 @@ static void aout_free_l(SDL_Aout *aout)
     SDL_Aout_FreeInternal(aout);
 }
 
-SDL_Aout *SDL_AoutAndroid_CreateForAudioTrack()
+static SDL_Aout *createForAudioTrack(bool useCustomAudioTrack)
 {
+    SDL_Android_USE_Custom_AudioTrack(useCustomAudioTrack);
     SDL_Aout *aout = SDL_Aout_CreateInternal(sizeof(SDL_Aout_Opaque));
     if (!aout)
         return NULL;
@@ -272,7 +277,7 @@ SDL_Aout *SDL_AoutAndroid_CreateForAudioTrack()
     opaque->wakeup_cond  = SDL_CreateCond();
     opaque->wakeup_mutex = SDL_CreateMutex();
 
-    aout->opaque_class = &g_audiotrack_class;
+    aout->opaque_class = useCustomAudioTrack ? &g_custom_audiotrack_class : &g_audiotrack_class;
     aout->free_l       = aout_free_l;
     aout->open_audio   = aout_open_audio;
     aout->pause_audio  = aout_pause_audio;
@@ -283,12 +288,29 @@ SDL_Aout *SDL_AoutAndroid_CreateForAudioTrack()
     return aout;
 }
 
+SDL_Aout *SDL_AoutAndroid_CreateForAudioTrack()
+{
+    return createForAudioTrack(false);
+}
+
+SDL_Aout *SDL_AoutAndroid_CreateForCustomAudioTrack()
+{
+    return createForAudioTrack(true);
+}
+
 bool SDL_AoutAndroid_IsObjectOfAudioTrack(SDL_Aout *aout)
 {
-    if (aout)
+    if (!aout)
+        return false;
+    return aout->opaque_class == &g_audiotrack_class;
+}
+
+bool SDL_AoutAndroid_IsObjectOfCustomAudioTrack(SDL_Aout *aout)
+{
+    if (!aout)
         return false;
 
-    return aout->opaque_class == &g_audiotrack_class;
+    return aout->opaque_class == &g_custom_audiotrack_class;
 }
 
 void SDL_Init_AoutAndroid(JNIEnv *env)

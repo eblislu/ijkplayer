@@ -47,6 +47,8 @@
 #define MAX_QUEUE_SIZE (10 * 1024 * 1024)
 #define MIN_FRAMES 50000
 
+#define OUT_PUT
+
 /* Minimum SDL audio buffer size, in samples. */
 #define SDL_AUDIO_MIN_BUFFER_SIZE 512
 /* Calculate actual buffer size keeping in mind not cause too frequent audio callbacks */
@@ -492,6 +494,8 @@ typedef struct FFPlayer {
 
     MessageQueue msg_queue;
 
+    int output_channel_layout;
+
     int max_buffer_size;
     int high_water_mark_in_bytes;
 
@@ -580,6 +584,7 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     ffp->error                  = 0;
     ffp->error_count            = 0;
     ffp->auto_play_on_prepared  = 1;
+    ffp->output_channel_layout  = AV_CH_LAYOUT_STEREO;
 
     ffp->max_buffer_size                = MAX_QUEUE_SIZE;
     ffp->high_water_mark_in_bytes       = DEFAULT_HIGH_WATER_MARK_IN_BYTES;

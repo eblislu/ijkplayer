@@ -154,3 +154,31 @@ void ijkmp_android_set_opensles_enabled(IjkMediaPlayer *mp, bool enabled)
     pthread_mutex_unlock(&mp->mutex);
     MPTRACE("ijkmp_android_set_opensles_enabled()=void");
 }
+
+void ijkmp_android_set_custom_audio_track_enabled(IjkMediaPlayer *mp, bool enabled)
+{
+    if (!mp)
+         return;
+
+    MPTRACE("ijkmp_android_set_custom_audio_track(%d)", enabled ? 1 : 0);
+    pthread_mutex_lock(&mp->mutex);
+
+    if (mp) {
+        if (enabled) {
+            if (!SDL_AoutAndroid_IsObjectOfCustomAudioTrack(mp->ffplayer->aout)) {
+                ALOGI("recreate aout for Custom AudioTrack\n");
+                SDL_AoutFreeP(&mp->ffplayer->aout);
+                mp->ffplayer->aout = SDL_AoutAndroid_CreateForCustomAudioTrack();
+            }
+        } else {
+            if (!SDL_AoutAndroid_IsObjectOfAudioTrack(mp->ffplayer->aout)) {
+                ALOGI("recreate aout for AudioTrack\n");
+                SDL_AoutFreeP(&mp->ffplayer->aout);
+                mp->ffplayer->aout = SDL_AoutAndroid_CreateForAudioTrack();
+            }
+        }
+    }
+
+    pthread_mutex_unlock(&mp->mutex);
+    MPTRACE("ijkmp_android_set_custom_audio_track()=void");
+}

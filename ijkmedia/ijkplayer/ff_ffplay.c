@@ -1707,6 +1707,22 @@ static int synchronize_audio(VideoState *is, int nb_samples)
     return wanted_nb_samples;
 }
 
+static void copy_left_to_right(uint8_t* buffer, int bytes_per_sample, int count) {
+    for (int i = 0; i < count; i += 2 * bytes_per_sample) {
+        for (int j = 0; j < bytes_per_sample; j++) {
+            buffer[i+j+bytes_per_sample] = buffer[i+j];
+        }
+    }
+}
+
+static void copy_right_to_left(uint8_t* buffer, int bytes_per_sample, int count) {
+    for (int i = 0; i < count; i += 2 * bytes_per_sample) {
+        for (int j = 0; j < bytes_per_sample; j++) {
+            buffer[i+j] = buffer[i+j+bytes_per_sample];
+        }
+    }
+}
+
 /**
  * Decode one audio frame and return its uncompressed size.
  *
@@ -1800,6 +1816,21 @@ static int audio_decode_frame(FFPlayer *ffp)
         } else {
             is->audio_buf = af->frame->data[0];
             resampled_data_size = data_size;
+        }
+
+        // map output channel layout
+        if (is->audio_tgt.channels == 2) {
+            switch (ffp->output_channel_layout)
+            {
+            case AV_CH_FRONT_LEFT:
+                copy_left_to_right(is->audio_buf, av_get_bytes_per_sample(is->audio_tgt.fmt), resampled_data_size);
+                break;
+            case AV_CH_FRONT_RIGHT:
+                copy_right_to_left(is->audio_buf, av_get_bytes_per_sample(is->audio_tgt.fmt), resampled_data_size);
+                break;
+            default:
+                break;
+            }
         }
 
         audio_clock0 = is->audio_clock;
@@ -2176,10 +2207,15 @@ static void stream_component_close(FFPlayer *ffp, int stream_index)
         break;
     }
 }
-
+int ind = 0;
+int call_time=0;
 static int decode_interrupt_cb(void *ctx)
 {
-    VideoState *is = ctx;
+	FFPlayer *ffp = ctx;
+    VideoState *is = ffp->is;
+    if (call_time % 5 == 0 && ind <= 80)
+    	ffp_notify_msg3(ffp, FFP_MSG_BUFFERING_UPDATE, 1, ++ind);
+	call_time++;
     return is->abort_request;
 }
 
@@ -2236,7 +2272,7 @@ static int read_thread(void *arg)
         goto fail;
     }
     ic->interrupt_callback.callback = decode_interrupt_cb;
-    ic->interrupt_callback.opaque = is;
+    ic->interrupt_callback.opaque = ffp;
     if (!av_dict_get(ffp->format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE)) {
         av_dict_set(&ffp->format_opts, "scan_all_pmts", "1", AV_DICT_DONT_OVERWRITE);
         scan_all_pmts_set = 1;
@@ -2245,6 +2281,7 @@ static int read_thread(void *arg)
         av_format_set_control_message_cb(ic, ffp_format_control_message);
         av_format_set_opaque(ic, ffp);
     }
+    ind = 0;
     err = avformat_open_input(&ic, is->filename, is->iformat, &ffp->format_opts);
     if (err < 0) {
         print_error(is->filename, err);
@@ -3111,6 +3148,15 @@ void ffp_set_max_buffer_size(FFPlayer *ffp, int max_buffer_size)
         ffp->max_buffer_size = MAX_QUEUE_SIZE;
     else
         ffp->max_buffer_size = max_buffer_size;
+}
+
+void ffp_set_output_channel_layout(FFPlayer *ffp, int output_channel_layout)
+{
+    if (output_channel_layout <= 0 || output_channel_layout > AV_CH_LAYOUT_STEREO)
+        ffp->output_channel_layout = AV_CH_LAYOUT_STEREO;
+    else
+        ffp->output_channel_layout = output_channel_layout;
+    ALOGI("ffp_set_output_channel_layout: %d\n", ffp->output_channel_layout);
 }
 
 int ffp_get_video_codec_info(FFPlayer *ffp, char **codec_info)

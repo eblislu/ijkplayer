@@ -58,6 +58,7 @@ void      ffp_set_option_int(FFPlayer *ffp, int opt_category, const char *name, 
 void      ffp_set_overlay_format(FFPlayer *ffp, int chroma_fourcc);
 void      ffp_set_auto_play_on_prepared(FFPlayer *ffp, int auto_play_on_prepared);
 void      ffp_set_max_buffer_size(FFPlayer *ffp, int max_buffer_size);
+void      ffp_set_output_channel_layout(FFPlayer *ffp, int output_channel);
 
 int       ffp_get_video_codec_info(FFPlayer *ffp, char **codec_info);
 int       ffp_get_audio_codec_info(FFPlayer *ffp, char **codec_info);
