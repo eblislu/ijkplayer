@@ -31,33 +31,33 @@ public abstract class SimpleMediaPlayer extends BaseMediaPlayer implements
     private OnErrorListener mOnErrorListener;
     private OnInfoListener mOnInfoListener;
 
-    public final void setOnPreparedListener(OnPreparedListener listener) {
+    public void setOnPreparedListener(OnPreparedListener listener) {
         mOnPreparedListener = listener;
     }
 
-    public final void setOnCompletionListener(OnCompletionListener listener) {
+    public void setOnCompletionListener(OnCompletionListener listener) {
         mOnCompletionListener = listener;
     }
 
-    public final void setOnBufferingUpdateListener(
+    public void setOnBufferingUpdateListener(
             OnBufferingUpdateListener listener) {
         mOnBufferingUpdateListener = listener;
     }
 
-    public final void setOnSeekCompleteListener(OnSeekCompleteListener listener) {
+    public void setOnSeekCompleteListener(OnSeekCompleteListener listener) {
         mOnSeekCompleteListener = listener;
     }
 
-    public final void setOnVideoSizeChangedListener(
+    public void setOnVideoSizeChangedListener(
             OnVideoSizeChangedListener listener) {
         mOnVideoSizeChangedListener = listener;
     }
 
-    public final void setOnErrorListener(OnErrorListener listener) {
+    public void setOnErrorListener(OnErrorListener listener) {
         mOnErrorListener = listener;
     }
 
-    public final void setOnInfoListener(OnInfoListener listener) {
+    public void setOnInfoListener(OnInfoListener listener) {
         mOnInfoListener = listener;
     }
 

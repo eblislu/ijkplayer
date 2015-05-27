@@ -49,7 +49,7 @@ import android.view.SurfaceHolder;
  * 
  *         Java wrapper of ffplay.
  */
-public final class IjkMediaPlayer extends SimpleMediaPlayer {
+public class IjkMediaPlayer extends SimpleMediaPlayer {
     private final static String TAG = IjkMediaPlayer.class.getName();
 
     private static final int MEDIA_NOP = 0; // interface test message
@@ -61,6 +61,10 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
     private static final int MEDIA_TIMED_TEXT = 99;
     private static final int MEDIA_ERROR = 100;
     private static final int MEDIA_INFO = 200;
+	
+	public static final int CHANNEL_LAYOUT_LEFT = 1;
+	public static final int CHANNEL_LAYOUT_RIGHT = 2;
+	public static final int CHANNEL_LAYOUT_STEREO = CHANNEL_LAYOUT_LEFT|CHANNEL_LAYOUT_RIGHT;
 
     protected static final int MEDIA_SET_VIDEO_SAR = 10001;
 
@@ -512,6 +516,14 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
     public void setAutoPlayOnPrepared(boolean enabled) {
         _setAutoPlayOnPrepared(enabled);
     }
+	
+    public void setCustomAudioTrackEnabled(boolean enabled) {
+        _setCustomAudioTrackEnabled(enabled);
+    }
+	
+    public void setOutputChannelLayout(int outputChannelLayout) {
+        _setOutputChannelLayout(outputChannelLayout);
+    }
 
     private native void _setAvFormatOption(String name, String value);
     private native void _setAvCodecOption(String name, String value);
@@ -521,6 +533,8 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
     private native void _setMediaCodecEnabled(boolean enabled);
     private native void _setOpenSLESEnabled(boolean enabled);
     private native void _setAutoPlayOnPrepared(boolean enabled);
+    private native void _setCustomAudioTrackEnabled(boolean enabled);
+    private native void _setOutputChannelLayout(int outputChannelLayout);
 
     public Bundle getMediaMeta() {
         return _getMediaMeta();
@@ -578,6 +592,8 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
                 return;
 
             case MEDIA_BUFFERING_UPDATE:
+                player.notifyOnInfo(108813, msg.arg2);
+//                DebugLog.efmt(TAG, "Buffer %d%%",  msg.arg2);
                 long bufferPosition = msg.arg1;
                 if (bufferPosition < 0) {
                     bufferPosition = 0;
