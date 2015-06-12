@@ -108,6 +108,9 @@ static const AVOption ffp_context_options[] = {
     { "max-buffer-size",                    "max buffer size should be pre-read",
         OPTION_OFFSET(max_buffer_size),     OPTION_INT(MAX_QUEUE_SIZE, 0, MAX_QUEUE_SIZE) },
 
+    { "output_channel_layout",                  "set output channel layout.",
+        OPTION_OFFSET(output_channel_layout),   OPTION_INT(AV_CH_LAYOUT_STEREO, AV_CH_FRONT_LEFT, AV_CH_LAYOUT_STEREO) },
+
     { NULL }
 };
 #undef OPTION_INT
@@ -3115,6 +3118,15 @@ void ffp_set_option_int(FFPlayer *ffp, int opt_category, const char *name, int64
 
     AVDictionary **dict = ffp_get_opt_dict(ffp, opt_category);
     av_dict_set_int(dict, name, value, 0);
+}
+
+void ffp_set_player_option_runtime_int(FFPlayer *ffp, const char *name, int64_t value)
+{
+    if (!ffp)
+        return;
+
+    av_dict_set_int(&ffp->player_opts, name, value, 0);
+    av_opt_set_dict(ffp, &ffp->player_opts);
 }
 
 void ffp_set_overlay_format(FFPlayer *ffp, int chroma_fourcc)

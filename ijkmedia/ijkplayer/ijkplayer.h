@@ -173,6 +173,7 @@ void            ijkmp_set_player_option(IjkMediaPlayer *mp, const char *name, co
 
 void            ijkmp_set_option(IjkMediaPlayer *mp, int opt_category, const char *name, const char *value);
 void            ijkmp_set_option_int(IjkMediaPlayer *mp, int opt_category, const char *name, int64_t value);
+void            ijkmp_set_player_option_runtime_int(IjkMediaPlayer *mp, const char *name, int64_t value);
 
 attribute_deprecated
 void            ijkmp_set_overlay_format(IjkMediaPlayer *mp, int chroma_fourcc);

@@ -46,6 +46,7 @@ void      ffp_set_format_callback(FFPlayer *ffp, ijk_format_control_message cb, 
 
 void      ffp_set_option(FFPlayer *ffp, int opt_category, const char *name, const char *value);
 void      ffp_set_option_int(FFPlayer *ffp, int opt_category, const char *name, int64_t value);
+void      ffp_set_player_option_runtime_int(FFPlayer *ffp, const char *name, int64_t value);
 void      ffp_set_output_channel_layout(FFPlayer *ffp, int output_channel);
 
 int       ffp_get_video_codec_info(FFPlayer *ffp, char **codec_info);

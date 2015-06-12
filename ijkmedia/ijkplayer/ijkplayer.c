@@ -201,6 +201,17 @@ void ijkmp_set_option_int(IjkMediaPlayer *mp, int opt_category, const char *name
     MPTRACE("%s()=void\n", __func__);
 }
 
+void ijkmp_set_player_option_runtime_int(IjkMediaPlayer *mp, const char *name, int64_t value)
+{
+    assert(mp);
+
+    MPTRACE("%s(%s, %"PRId64")\n", __func__, name, value);
+    pthread_mutex_lock(&mp->mutex);
+    ffp_set_player_option_runtime_int(mp->ffplayer, name, value);
+    pthread_mutex_unlock(&mp->mutex);
+    MPTRACE("%s()=void\n", __func__);
+}
+
 void ijkmp_set_picture_queue_capicity(IjkMediaPlayer *mp, int frame_count)
 {
     assert(mp);
@@ -240,11 +251,12 @@ void ijkmp_set_output_channel_layout(IjkMediaPlayer *mp, int output_channel_layo
 {
     assert(mp);
 
-    MPTRACE("%s(%d)\n", __func__, output_channel_layout);
-    pthread_mutex_lock(&mp->mutex);
-    ffp_set_output_channel_layout(mp->ffplayer, output_channel_layout);
-    pthread_mutex_unlock(&mp->mutex);
-    MPTRACE("%s()=void\n", __func__);
+    // MPTRACE("%s(%d)\n", __func__, output_channel_layout);
+    // pthread_mutex_lock(&mp->mutex);
+    // ffp_set_output_channel_layout(mp->ffplayer, output_channel_layout);
+    // pthread_mutex_unlock(&mp->mutex);
+    // MPTRACE("%s()=void\n", __func__);
+    ijkmp_set_player_option_runtime_int(mp, "output_channel_layout", output_channel_layout);
 }
 
 int ijkmp_get_video_codec_info(IjkMediaPlayer *mp, char **codec_info)
@@ -600,7 +612,7 @@ long ijkmp_get_current_position(IjkMediaPlayer *mp)
     else if (mp->ffplayer)
         retval = ijkmp_get_current_position_l(mp);
     else
-        retval = 0; 
+        retval = 0;
     pthread_mutex_unlock(&mp->mutex);
     return retval;
 }
