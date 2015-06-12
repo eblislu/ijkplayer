@@ -29,7 +29,7 @@
 
 #include "string.h"
 
-@interface IJKFFMoviePlayerController() <IJKAudioSessionDelegate>
+@interface IJKFFMoviePlayerController()
 
 @property(nonatomic, readonly) NSDictionary *mediaMeta;
 @property(nonatomic, readonly) NSDictionary *videoMeta;
@@ -185,21 +185,22 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
 
         ijkmp_set_weak_thiz(_mediaPlayer, (__bridge_retained void *) self);
         ijkmp_set_format_callback(_mediaPlayer, format_control_message, (__bridge void *) self);
-        ijkmp_set_auto_play_on_prepared(_mediaPlayer, _shouldAutoplay);
+        ijkmp_set_option_int(_mediaPlayer, IJKMP_OPT_CATEGORY_PLAYER, "start-on-prepared", _shouldAutoplay ? 1 : 0);
 
         // init video sink
-//        int chroma = SDL_FCC_RV24;
-        int chroma = SDL_FCC_I420;
         _glView = [[IJKSDLGLView alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
         _view   = _glView;
 
         ijkmp_ios_set_glview(_mediaPlayer, _glView);
-        ijkmp_set_overlay_format(_mediaPlayer, chroma);
+        ijkmp_set_option(_mediaPlayer, IJKMP_OPT_CATEGORY_PLAYER, "overlay-format", "fcc-i420");
 
         // init audio sink
-        [[IJKAudioKit sharedInstance] setupAudioSession:self];
+        [[IJKAudioKit sharedInstance] setupAudioSession];
 
         // apply ffmpeg options
+        if (options == nil) {
+            options = [IJKFFOptions optionsByDefault];
+        }
         [options applyTo:_mediaPlayer];
         _pauseInBackground = options.pauseInBackground;
 
@@ -232,7 +233,7 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
     if (!_mediaPlayer)
         return;
 
-    ijkmp_set_auto_play_on_prepared(_mediaPlayer, shouldAutoplay);
+    ijkmp_set_option_int(_mediaPlayer, IJKMP_OPT_CATEGORY_PLAYER, "start-on-prepared", _shouldAutoplay ? 1 : 0);
 }
 
 - (BOOL)shouldAutoplay
@@ -301,12 +302,48 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
     return _isVideoToolboxOpen;
 }
 
-- (void)setMaxBufferSize:(int)maxBufferSize
+inline static int getPlayerOption(IJKFFOptionCategory category)
 {
+    int mp_category = -1;
+    switch (category) {
+        case kIJKFFOptionCategoryFormat:
+            mp_category = IJKMP_OPT_CATEGORY_FORMAT;
+            break;
+        case kIJKFFOptionCategoryCodec:
+            mp_category = IJKMP_OPT_CATEGORY_CODEC;
+            break;
+        case kIJKFFOptionCategorySws:
+            mp_category = IJKMP_OPT_CATEGORY_SWS;
+            break;
+        case kIJKFFOptionCategoryPlayer:
+            mp_category = IJKMP_OPT_CATEGORY_PLAYER;
+            break;
+        default:
+            NSLog(@"unknown option category: %d\n", category);
+    }
+    return mp_category;
+}
+
+- (void)setOptionValue:(NSString *)value
+                forKey:(NSString *)key
+            ofCategory:(IJKFFOptionCategory)category
+{
+    assert(_mediaPlayer);
     if (!_mediaPlayer)
         return;
 
-    ijkmp_set_max_buffer_size(_mediaPlayer, maxBufferSize);
+    ijkmp_set_option(_mediaPlayer, getPlayerOption(category), [key UTF8String], [value UTF8String]);
+}
+
+- (void)setOptionIntValue:(NSInteger)value
+                   forKey:(NSString *)key
+               ofCategory:(IJKFFOptionCategory)category
+{
+    assert(_mediaPlayer);
+    if (!_mediaPlayer)
+        return;
+
+    ijkmp_set_option_int(_mediaPlayer, getPlayerOption(category), [key UTF8String], value);
 }
 
 + (void)setLogReport:(BOOL)preferLogReport
@@ -772,18 +809,6 @@ int format_control_message(void *opaque, int type, void *data, size_t data_size)
     }
 }
 
-#pragma mark IJKAudioSessionDelegate
-
-- (void)ijkAudioBeginInterruption
-{
-    [self pause];
-}
-
-- (void)ijkAudioEndInterruption
-{
-    [self pause];
-}
-
 #pragma mark Airplay
 
 -(BOOL)allowsMediaAirPlay
@@ -834,6 +859,11 @@ int format_control_message(void *opaque, int type, void *data, size_t data_size)
 
 - (void)registerApplicationObservers
 {
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(audioSessionInterrupt:)
+                                                 name:AVAudioSessionInterruptionNotification
+                                               object:nil];
+    [_registeredNotifications addObject:AVAudioSessionInterruptionNotification];
 
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(applicationWillEnterForeground)
@@ -872,6 +902,25 @@ int format_control_message(void *opaque, int type, void *data, size_t data_size)
         [[NSNotificationCenter defaultCenter] removeObserver:self
                                                         name:name
                                                       object:nil];
+    }
+}
+
+- (void)audioSessionInterrupt:(NSNotification *)notification
+{
+    int reason = [[[notification userInfo] valueForKey:AVAudioSessionInterruptionTypeKey] intValue];
+    switch (reason) {
+        case AVAudioSessionInterruptionTypeBegan: {
+            NSLog(@"IJKFFMoviePlayerController:audioSessionInterrupt: begin\n");
+            [self pause];
+            [[IJKAudioKit sharedInstance] setActive:NO];
+            break;
+        }
+        case AVAudioSessionInterruptionTypeEnded: {
+            NSLog(@"IJKFFMoviePlayerController:audioSessionInterrupt: end\n");
+            [[IJKAudioKit sharedInstance] setActive:YES];
+            [self play];
+            break;
+        }
     }
 }
 

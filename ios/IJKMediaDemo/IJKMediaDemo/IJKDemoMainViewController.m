@@ -1,10 +1,18 @@
-//
-//  IJKDemoMainViewController.m
-//  IJKMediaDemo
-//
-//  Created by Gdier on 5/26/15.
-//  Copyright (c) 2015 bilibili. All rights reserved.
-//
+/*
+ * Copyright (C) 2015 Gdier
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #import "IJKDemoMainViewController.h"
 #import "IJKDemoInputURLViewController.h"
@@ -13,6 +21,7 @@
 #import "IJKDemoHistory.h"
 #import "IJKMoviePlayerViewController.h"
 #import "IJKDemoLocalFolderViewController.h"
+#import "IJKDemoSampleViewController.h"
 
 @interface IJKDemoMainViewController () <UITableViewDataSource, UITableViewDelegate>
 
@@ -33,6 +42,7 @@
                                  @"Local Folder",
                                  @"Input URL",
                                  @"Scan QRCode",
+                                 @"Online Samples",
                                  ];
     
     NSURL *documentsUrl = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] firstObject];
@@ -130,7 +140,11 @@
                 case 2:
                     [self.navigationController pushViewController:[[IJKQRCodeScanViewController alloc] init] animated:YES];
                     break;
-                    
+
+                case 3:
+                    [self.navigationController pushViewController:[[IJKDemoSampleViewController alloc] init] animated:YES];
+                    break;
+
                 default:
                     break;
             }

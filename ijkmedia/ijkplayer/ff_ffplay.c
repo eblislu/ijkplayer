@@ -72,18 +72,41 @@ static int ffp_format_control_message(struct AVFormatContext *s, int type,
     .max = max__, \
     .flags = AV_OPT_FLAG_DECODING_PARAM
 
+#define OPTION_CONST(default__) \
+    .type = AV_OPT_TYPE_CONST, \
+    { .i64 = default__ }, \
+    .min = INT_MIN, \
+    .max = INT_MAX, \
+    .flags = AV_OPT_FLAG_DECODING_PARAM
+
 static const AVOption ffp_context_options[] = {
     // original options in ffplay.c
-    { "framedrop",                  "drop frames when cpu is too slow",
-        OPTION_OFFSET(framedrop),   OPTION_INT(0, -1, 1) },
+    { "framedrop",                      "drop frames when cpu is too slow",
+        OPTION_OFFSET(framedrop),       OPTION_INT(0, -1, 1) },
 
     // extended options in ff_ffplay.c
-    { "max-fps",                    "drop frames in video whose fps is greater than max-fps",
-        OPTION_OFFSET(max_fps),     OPTION_INT(31, 0, 121) },
-    { "video-pictq-size",           "max picture queue frame count",
-        OPTION_OFFSET(pictq_size),  OPTION_INT(VIDEO_PICTURE_QUEUE_SIZE_DEFAULT,
-                                               VIDEO_PICTURE_QUEUE_SIZE_MIN,
-                                               VIDEO_PICTURE_QUEUE_SIZE_MAX) },
+    { "max-fps",                        "drop frames in video whose fps is greater than max-fps",
+        OPTION_OFFSET(max_fps),         OPTION_INT(31, 0, 121) },
+
+    { "overlay-format",                 "fourcc of overlay format",
+        OPTION_OFFSET(overlay_format),  OPTION_INT(SDL_FCC_RV32, INT_MIN, INT_MAX),
+        .unit = "overlay-format" },
+    { "fcc-i420",                       "", 0, OPTION_CONST(SDL_FCC_I420), .unit = "overlay-format" },
+    { "fcc-yv12",                       "", 0, OPTION_CONST(SDL_FCC_YV12), .unit = "overlay-format" },
+    { "fcc-rv16",                       "", 0, OPTION_CONST(SDL_FCC_RV16), .unit = "overlay-format" },
+    { "fcc-rv23",                       "", 0, OPTION_CONST(SDL_FCC_RV24), .unit = "overlay-format" },
+    { "fcc-rv32",                       "", 0, OPTION_CONST(SDL_FCC_RV32), .unit = "overlay-format" },
+
+    { "start-on-prepared",                  "automatically start playing on prepared",
+        OPTION_OFFSET(start_on_prepared),   OPTION_INT(1, 0, 1) },
+
+    { "video-pictq-size",                   "max picture queue frame count",
+        OPTION_OFFSET(pictq_size),          OPTION_INT(VIDEO_PICTURE_QUEUE_SIZE_DEFAULT,
+                                                       VIDEO_PICTURE_QUEUE_SIZE_MIN,
+                                                       VIDEO_PICTURE_QUEUE_SIZE_MAX) },
+
+    { "max-buffer-size",                    "max buffer size should be pre-read",
+        OPTION_OFFSET(max_buffer_size),     OPTION_INT(MAX_QUEUE_SIZE, 0, MAX_QUEUE_SIZE) },
 
     { NULL }
 };
@@ -1906,6 +1929,7 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
 static int audio_open(FFPlayer *opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params)
 {
     FFPlayer *ffp = opaque;
+    VideoState *is = ffp->is;
     SDL_AudioSpec wanted_spec, spec;
     const char *env;
     static const int next_nb_channels[] = {0, 0, 1, 6, 2, 6, 4, 6};
@@ -1939,6 +1963,9 @@ static int audio_open(FFPlayer *opaque, int64_t wanted_channel_layout, int wante
     wanted_spec.callback = sdl_audio_callback;
     wanted_spec.userdata = opaque;
     while (SDL_AoutOpenAudio(ffp->aout, &wanted_spec, &spec) < 0) {
+        /* avoid infinity loop on exit. --by bbcallen */
+        if (is->abort_request)
+            return -1;
         av_log(NULL, AV_LOG_WARNING, "SDL_OpenAudio (%d channels, %d Hz): %s\n",
                wanted_spec.channels, wanted_spec.freq, SDL_GetError());
         wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)];
@@ -2455,7 +2482,7 @@ static int read_thread(void *arg)
     if (ffp->infinite_buffer < 0 && is->realtime)
         ffp->infinite_buffer = 1;
 
-    if (!ffp->auto_play_on_prepared)
+    if (!ffp->start_on_prepared)
         toggle_pause(ffp, 1);
     ffp->prepared = true;
     ffp_notify_msg1(ffp, FFP_MSG_PREPARED);
@@ -2464,8 +2491,8 @@ static int read_thread(void *arg)
         ffp_notify_msg3(ffp, FFP_MSG_VIDEO_SIZE_CHANGED, avctx->width, avctx->height);
         ffp_notify_msg3(ffp, FFP_MSG_SAR_CHANGED, avctx->sample_aspect_ratio.num, avctx->sample_aspect_ratio.den);
     }
-    if (!ffp->auto_play_on_prepared) {
-        while (is->paused && !is->abort_request) {
+    if (!ffp->start_on_prepared) {
+        while (is->pause_req && !is->abort_request) {
             SDL_Delay(100);
         }
     }
@@ -2773,6 +2800,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
 
     is->play_mutex = SDL_CreateMutex();
     ffp->is = is;
+    is->pause_req = !ffp->start_on_prepared;
 
     is->video_refresh_tid = SDL_CreateThreadEx(&is->_video_refresh_tid, video_refresh_thread, ffp, "ff_vout");
     if (!is->video_refresh_tid) {
@@ -3056,38 +3084,6 @@ void ffp_set_format_callback(FFPlayer *ffp, ijk_format_control_message cb, void 
     ffp->format_control_opaque  = opaque;
 }
 
-void ffp_set_format_option(FFPlayer *ffp, const char *name, const char *value)
-{
-    if (!ffp)
-        return;
-
-    av_dict_set(&ffp->format_opts, name, value, 0);
-}
-
-void ffp_set_codec_option(FFPlayer *ffp, const char *name, const char *value)
-{
-    if (!ffp)
-        return;
-
-    av_dict_set(&ffp->codec_opts, name, value, 0);
-}
-
-void ffp_set_sws_option(FFPlayer *ffp, const char *name, const char *value)
-{
-    if (!ffp)
-        return;
-
-    av_dict_set(&ffp->sws_opts, name, value, 0);
-}
-
-void ffp_set_player_option(FFPlayer *ffp, const char *name, const char *value)
-{
-    if (!ffp)
-        return;
-
-    av_dict_set(&ffp->player_opts, name, value, 0);
-}
-
 static AVDictionary **ffp_get_opt_dict(FFPlayer *ffp, int opt_category)
 {
     assert(ffp);
@@ -3135,19 +3131,6 @@ void ffp_set_overlay_format(FFPlayer *ffp, int chroma_fourcc)
             ALOGE("ffp_set_overlay_format: unknown chroma fourcc: %d\n", chroma_fourcc);
             break;
     }
-}
-
-void ffp_set_auto_play_on_prepared(FFPlayer *ffp, int auto_play_on_prepared)
-{
-    ffp->auto_play_on_prepared = auto_play_on_prepared;
-}
-
-void ffp_set_max_buffer_size(FFPlayer *ffp, int max_buffer_size)
-{
-    if (max_buffer_size < 0 || max_buffer_size > MAX_QUEUE_SIZE)
-        ffp->max_buffer_size = MAX_QUEUE_SIZE;
-    else
-        ffp->max_buffer_size = max_buffer_size;
 }
 
 void ffp_set_output_channel_layout(FFPlayer *ffp, int output_channel_layout)
@@ -3582,14 +3565,14 @@ void ffp_set_video_codec_info(FFPlayer *ffp, const char *module, const char *cod
 {
     av_freep(&ffp->video_codec_info);
     ffp->video_codec_info = av_asprintf("%s, %s", module ? module : "", codec ? codec : "");
-    ALOGI("VideoCodec: %s", ffp->video_codec_info);
+    ALOGI("VideoCodec: %s\n", ffp->video_codec_info);
 }
 
 void ffp_set_audio_codec_info(FFPlayer *ffp, const char *module, const char *codec)
 {
     av_freep(&ffp->audio_codec_info);
     ffp->audio_codec_info = av_asprintf("%s, %s", module ? module : "", codec ? codec : "");
-    ALOGI("AudioCodec: %s", ffp->audio_codec_info);
+    ALOGI("AudioCodec: %s\n", ffp->audio_codec_info);
 }
 
 IjkMediaMeta *ffp_get_meta_l(FFPlayer *ffp)
