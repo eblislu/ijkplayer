@@ -2494,11 +2494,11 @@ static int read_thread(void *arg)
         ffp_notify_msg3(ffp, FFP_MSG_VIDEO_SIZE_CHANGED, avctx->width, avctx->height);
         ffp_notify_msg3(ffp, FFP_MSG_SAR_CHANGED, avctx->sample_aspect_ratio.num, avctx->sample_aspect_ratio.den);
     }
-    if (!ffp->start_on_prepared) {
-        while (is->pause_req && !is->abort_request) {
-            SDL_Delay(100);
-        }
-    }
+    // if (!ffp->start_on_prepared) {
+    //     while (is->pause_req && !is->abort_request) {
+    //         SDL_Delay(100);
+    //     }
+    // }
     if (ffp->auto_resume) {
         ffp_notify_msg1(ffp, FFP_REQ_START);
         ffp->auto_resume = 0;
